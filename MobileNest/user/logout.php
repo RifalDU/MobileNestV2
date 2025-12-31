@@ -1,8 +1,16 @@
 <?php
-require_once '../config.php';
+session_start();
 
-session_unset();
+// Destroy all session data
+$_SESSION = [];
+
+if (ini_get('session.use_cookies') && !headers_sent()) {
+    setcookie(session_name(), '', time() - 3600, '/');
+}
+
 session_destroy();
 
-header('Location: ../index.php');
+// Redirect to login
+header('Location: login.php');
 exit;
+?>

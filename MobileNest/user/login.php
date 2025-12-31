@@ -1,237 +1,252 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once '../config.php';
-require_once '../includes/auth-check.php';
-require_user_login();
 
-$user_id = $_SESSION['user'];
+$page_title = "Login - MobileNest";
 $errors = [];
-$message = '';
+$success = '';
 
-$sql = "SELECT * FROM users WHERE id_user = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param('i', $user_id);
-$stmt->execute();
-$user_data = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['edit_profil'])) {
-        $nama = trim($_POST['nama_lengkap']);
-        $email = trim($_POST['email']);
-        $telepon = trim($_POST['no_telepon']);
-        $alamat = trim($_POST['alamat']);
-        
-        if (empty($nama)) $errors[] = 'Nama tidak boleh kosong';
-        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Email tidak valid';
-        
-        if (empty($errors)) {
-            $update = $conn->prepare("UPDATE users SET nama_lengkap=?, email=?, no_telepon=?, alamat=? WHERE id_user=?");
-            $update->bind_param('ssssi', $nama, $email, $telepon, $alamat, $user_id);
-            if ($update->execute()) {
-                $message = 'Profil berhasil diperbarui!';
-                $user_data = ['nama_lengkap'=>$nama, 'email'=>$email, 'no_telepon'=>$telepon, 'alamat'=>$alamat];
-            }
-            $update->close();
-        }
-    }
-    
-    if (isset($_POST['ubah_password'])) {
-        $old = $_POST['password_lama'];
-        $new = $_POST['password_baru'];
-        $confirm = $_POST['password_konfirm'];
-        
-        if (empty($old)) $errors[] = 'Password lama kosong';
-        if (strlen($new) < 6) $errors[] = 'Password baru minimal 6 karakter';
-        if ($new !== $confirm) $errors[] = 'Password tidak sama';
-        
-        if (empty($errors)) {
-            $check = $conn->prepare("SELECT password FROM users WHERE id_user=?");
-            $check->bind_param('i', $user_id);
-            $check->execute();
-            $pwd = $check->get_result()->fetch_assoc();
-            $check->close();
-            
-            if (password_verify($old, $pwd['password'])) {
-                $hash = password_hash($new, PASSWORD_DEFAULT);
-                $update = $conn->prepare("UPDATE users SET password=? WHERE id_user=?");
-                $update->bind_param('si', $hash, $user_id);
-                if ($update->execute()) $message = 'Password berhasil diubah!';
-                $update->close();
-            } else {
-                $errors[] = 'Password lama salah';
-            }
-        }
-    }
+// Jika sudah login, redirect ke home
+if (isset($_SESSION['user'])) {
+    header('Location: ' . SITE_URL . '/index.php');
+    exit;
 }
+if (isset($_SESSION['admin'])) {
+    header('Location: ' . SITE_URL . '/admin/dashboard.php');
+    exit;
+}
+
+// Tangkap pesan error/success dari session
+if (isset($_SESSION['error'])) {
+    $errors[] = $_SESSION['error'];
+    unset($_SESSION['error']);
+}
+if (isset($_SESSION['success'])) {
+    $success = $_SESSION['success'];
+    unset($_SESSION['success']);
+}
+
+include '../includes/header.php';
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Profil - MobileNest</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
+<div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100 py-5">
+        <div class="col-12 col-sm-10 col-md-8 col-lg-5">
+            <div class="card shadow border-0 rounded-lg" style="border-radius: 20px;">
+                <div class="card-body p-4 p-sm-5">
+                    <!-- Logo & Title -->
+                    <div class="text-center mb-5">
+                        <img src="<?php echo SITE_URL; ?>/assets/images/logo.jpg" alt="MobileNest Logo" height="60" class="mb-3">
+                        <h2 class="fw-bold text-primary mb-2">MobileNest</h2>
+                        <p class="text-muted">Masuk ke akun Anda</p>
+                    </div>
+
+                    <!-- Success Message -->
+                    <?php if ($success): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert" style="border-radius: 10px;">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <?php echo htmlspecialchars($success); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Error Messages -->
+                    <?php if ($errors): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert" style="border-radius: 10px;">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <?php foreach ($errors as $error): ?>
+                        <div>• <?php echo htmlspecialchars($error); ?></div>
+                        <?php endforeach; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Login Form -->
+                    <form action="proses-login.php" method="POST" novalidate>
+                        <div class="mb-4">
+                            <label for="username" class="form-label fw-bold mb-2">Username atau Email</label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="username" 
+                                   name="username" 
+                                   placeholder="Masukkan username atau email Anda" 
+                                   required
+                                   autocomplete="username"
+                                   style="border-radius: 10px; border: 2px solid #e9ecef;">
+                            <small class="text-muted d-block mt-2">Gunakan username atau email yang terdaftar</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="password" class="form-label fw-bold mb-2">Password</label>
+                            <div class="input-group">
+                                <input type="password" 
+                                       class="form-control form-control-lg" 
+                                       id="password" 
+                                       name="password" 
+                                       placeholder="Masukkan password Anda" 
+                                       required
+                                       autocomplete="current-password"
+                                       style="border-radius: 10px 0 0 10px; border: 2px solid #e9ecef;">
+                                <button class="btn btn-outline-secondary" 
+                                        type="button" 
+                                        id="togglePassword"
+                                        style="border: 2px solid #e9ecef; border-radius: 0 10px 10px 0;">
+                                    <i class="bi bi-eye" id="eyeIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-4 d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                <label class="form-check-label" for="remember">
+                                    Ingat saya
+                                </label>
+                            </div>
+                            <a href="#" class="text-decoration-none fw-bold" style="color: #667eea; font-size: 14px;">
+                                Lupa password?
+                            </a>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3 fw-bold" style="border-radius: 10px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 12px;">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Masuk
+                        </button>
+                    </form>
+
+                    <!-- Divider -->
+                    <div class="my-4 d-flex align-items-center">
+                        <hr class="flex-grow-1">
+                        <small class="text-muted px-2">atau</small>
+                        <hr class="flex-grow-1">
+                    </div>
+
+                    <!-- Register Link -->
+                    <div class="text-center">
+                        <p class="mb-0 text-muted">
+                            Belum punya akun? 
+                            <a href="register.php" class="text-decoration-none fw-bold" style="color: #667eea;">
+                                Daftar di sini
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Info -->
+            <div class="text-center mt-4">
+                <small class="text-muted">
+                    Dengan login, Anda menyetujui 
+                    <a href="#" class="text-decoration-none" style="color: #667eea;">Syarat & Ketentuan</a>
+                    kami
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
-body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    min-height: 100vh;
-}
-.profile-card {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-    margin-bottom: 25px;
-}
-.profile-header {
-    text-align: center;
-    padding: 40px 20px;
-}
-.avatar {
-    width: 100px;
-    height: 100px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 50px;
-    color: white;
-    margin-bottom: 15px;
-}
-.nav-tabs {
-    border: none;
-    background: white;
-    border-radius: 15px;
-    padding: 10px;
-    margin-bottom: 20px;
-}
-.nav-tabs .nav-link {
-    border: none;
-    color: #6c757d;
-    padding: 12px 25px;
-    border-radius: 10px;
-}
-.nav-tabs .nav-link.active {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-}
-.form-label {
-    font-weight: 600;
-    color: #2c3e50;
-}
-.form-control {
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 12px;
-}
-.btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border: none;
-    border-radius: 10px;
-    padding: 12px;
-}
-.btn-danger {
-    background: linear-gradient(135deg, #f093fb, #f5576c);
-    border: none;
-    border-radius: 10px;
-    padding: 12px;
-}
-.btn-back {
-    background: white;
-    color: #667eea;
-    border: 2px solid #667eea;
-    border-radius: 10px;
-    padding: 10px 20px;
-    text-decoration: none;
-    display: inline-block;
-}
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .card {
+        background: white;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-control,
+    .form-control:focus {
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .btn-outline-secondary {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-secondary:hover {
+        color: #667eea;
+        border-color: #667eea;
+    }
+
+    .form-check-input {
+        cursor: pointer;
+        border: 2px solid #e9ecef;
+    }
+
+    .form-check-input:checked {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+
+    .alert {
+        border: none;
+        background-color: #f8f9fa;
+        padding: 12px 15px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border-left: 4px solid #28a745;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-left: 4px solid #dc3545;
+    }
+
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 1.5rem !important;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+    }
 </style>
-</head>
-<body>
-<div class="container py-4">
-<div class="row justify-content-center">
-<div class="col-md-8">
 
-<a href="<?php echo SITE_URL; ?>/index.php" class="btn-back mb-3">← Kembali</a>
+<script>
+    // Toggle password visibility
+    document.getElementById('togglePassword').addEventListener('click', function() {
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eyeIcon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.classList.remove('bi-eye');
+            eyeIcon.classList.add('bi-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.classList.remove('bi-eye-slash');
+            eyeIcon.classList.add('bi-eye');
+        }
+    });
 
-<div class="profile-card profile-header">
-<div class="avatar"><i class="bi bi-person-circle"></i></div>
-<h4><?php echo htmlspecialchars($user_data['nama_lengkap']); ?></h4>
-<p><?php echo htmlspecialchars($user_data['email']); ?></p>
-</div>
+    // Form validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
 
-<?php if($message): ?>
-<div class="alert alert-success"><?php echo $message; ?></div>
-<?php endif; ?>
+        if (!username || !password) {
+            e.preventDefault();
+            alert('Username/Email dan Password harus diisi!');
+            return false;
+        }
+    });
+</script>
 
-<?php if($errors): ?>
-<div class="alert alert-danger">
-<?php foreach($errors as $e) echo "<div>$e</div>"; ?>
-</div>
-<?php endif; ?>
-
-<ul class="nav nav-tabs">
-<li class="nav-item">
-<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#data">Data Pribadi</button>
-</li>
-<li class="nav-item">
-<button class="nav-link" data-bs-toggle="tab" data-bs-target="#password">Keamanan</button>
-</li>
-</ul>
-
-<div class="tab-content">
-<div class="tab-pane fade show active" id="data">
-<div class="profile-card" style="padding:30px">
-<h5>Edit Profil</h5>
-<form method="POST">
-<div class="mb-3">
-<label class="form-label">Nama Lengkap</label>
-<input type="text" class="form-control" name="nama_lengkap" value="<?php echo htmlspecialchars($user_data['nama_lengkap']); ?>" required>
-</div>
-<div class="mb-3">
-<label class="form-label">Email</label>
-<input type="email" class="form-control" name="email" value="<?php echo htmlspecialchars($user_data['email']); ?>" required>
-</div>
-<div class="mb-3">
-<label class="form-label">No. Telepon</label>
-<input type="text" class="form-control" name="no_telepon" value="<?php echo htmlspecialchars($user_data['no_telepon']); ?>">
-</div>
-<div class="mb-3">
-<label class="form-label">Alamat</label>
-<textarea class="form-control" name="alamat" rows="3"><?php echo htmlspecialchars($user_data['alamat']); ?></textarea>
-</div>
-<button type="submit" name="edit_profil" class="btn btn-primary w-100">Simpan</button>
-</form>
-</div>
-</div>
-
-<div class="tab-pane fade" id="password">
-<div class="profile-card" style="padding:30px">
-<h5>Ubah Password</h5>
-<form method="POST">
-<div class="mb-3">
-<label class="form-label">Password Lama</label>
-<input type="password" class="form-control" name="password_lama" required>
-</div>
-<div class="mb-3">
-<label class="form-label">Password Baru (min 6 karakter)</label>
-<input type="password" class="form-control" name="password_baru" required>
-</div>
-<div class="mb-3">
-<label class="form-label">Konfirmasi Password</label>
-<input type="password" class="form-control" name="password_konfirm" required>
-</div>
-<button type="submit" name="ubah_password" class="btn btn-danger w-100">Ubah Password</button>
-</form>
-</div>
-</div>
-</div>
-
-</div>
-</div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php include '../includes/footer.php'; ?>

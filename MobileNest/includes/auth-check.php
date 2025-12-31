@@ -1,18 +1,13 @@
 <?php
-// ULTRA MINIMAL AUTH-CHECK - FIXED FOR SESSION COMPATIBILITY
+// ULTRA MINIMAL AUTH-CHECK - NO FANCY FEATURES
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Helper to get user ID safely
-function get_current_user_id() {
-    return $_SESSION['user_id'] ?? ($_SESSION['user'] ?? null);
-}
-
 // BASIC FUNCTION ONLY
 function require_user_login() {
-    // Check both new ('user_id') and old ('user') session keys
+    // Check BOTH old ($_SESSION['user']) AND new ($_SESSION['user_id']) session keys
     if (!isset($_SESSION['user_id']) && !isset($_SESSION['user'])) {
         header('Location: ' . SITE_URL . '/user/login.php');
         exit;
@@ -35,7 +30,7 @@ function is_admin_logged_in() {
 }
 
 function get_user_id() {
-    return get_current_user_id();
+    return $_SESSION['user_id'] ?? $_SESSION['user'] ?? null;
 }
 
 function get_admin_id() {

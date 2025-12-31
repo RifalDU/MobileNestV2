@@ -56,10 +56,10 @@ async function applyFilter() {
         const filters = getSelectedFilters();
         console.log('Applying filters:', filters);
 
-        // If no filters selected, show all PHP-rendered products
+        // If no filters selected, fetch ALL products from database
         if (!hasActiveFilters()) {
-            console.log('No filters active - showing all products from PHP');
-            showAllProducts();
+            console.log('No filters active - fetching all products');
+            await fetchAllProducts();
             return;
         }
 
@@ -117,24 +117,30 @@ async function applyFilter() {
 }
 
 /**
- * Show all PHP-rendered products
+ * Fetch all products from database
  */
-function showAllProducts() {
-    const container = document.getElementById('products_container');
-    const productCards = container.querySelectorAll('.product-card');
-    
-    // Show all cards
-    productCards.forEach(card => {
-        card.style.display = 'block';
-    });
-    
-    // Update count
-    const countElement = document.getElementById('product_count');
-    if (countElement) {
-        countElement.textContent = productCards.length;
+async function fetchAllProducts() {
+    try {
+        // Show loading state
+        showLoadingState();
+
+        // Fetch all products (no filters)
+        const response = await fetch('../produk/get-produk.php?sort=terbaru');
+        
+        if (!response.ok) {
+            throw new Error('API Error: ' + response.statusText);
+        }
+
+        const products = await response.json();
+        console.log('Fetched all products:', products.length);
+        
+        renderProducts(products);
+        showFilterNotification('info', 'Filter direset - menampilkan semua produk');
+
+    } catch (error) {
+        console.error('Error fetching all products:', error);
+        showFilterNotification('error', 'Error fetching products: ' + error.message);
     }
-    
-    console.log('Showing all', productCards.length, 'products');
 }
 
 /**
@@ -231,7 +237,7 @@ function renderProducts(products) {
  * Reset all filters
  */
 function resetFilter() {
-    console.log('Resetting filters');
+    console.log('Resetting all filters');
 
     // Uncheck all checkboxes
     document.querySelectorAll('input.brand-checkbox, input.price-checkbox').forEach(checkbox => {
@@ -250,9 +256,8 @@ function resetFilter() {
         sortSelect.value = 'terbaru';
     }
 
-    // Show all products (PHP-rendered)
-    showAllProducts();
-    showFilterNotification('info', 'Filter reset - Showing all products');
+    // Fetch all products from database (not just show PHP ones)
+    fetchAllProducts();
 }
 
 /**

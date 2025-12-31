@@ -141,14 +141,13 @@ include 'includes/header.php';
             <?php
             $brands = ['Samsung', 'Xiaomi', 'Apple', 'OPPO', 'Vivo', 'Realme'];
             foreach($brands as $brand):
-                $brand_display = ($brand === 'Apple') ? 'iPhone' : $brand;
             ?>
             <div class="col-6 col-md-4 col-lg-2">
                 <a href="<?php echo SITE_URL; ?>/produk/list-produk.php?brand=<?php echo urlencode($brand); ?>" class="category-card">
                     <div class="category-logo">
                         <img src="<?php echo get_brand_logo_url($brand); ?>" alt="<?php echo $brand; ?> Logo" loading="lazy" onerror="this.src='https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/smartphone.svg'">
                     </div>
-                    <h5><?php echo $brand_display; ?></h5>
+                    <h5><?php echo $brand; ?></h5>
                 </a>
             </div>
             <?php endforeach; ?>

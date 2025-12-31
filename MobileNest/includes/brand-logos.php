@@ -9,6 +9,10 @@ $brand_logos = [
         'image_url' => 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/apple.svg',
         'alt' => 'Apple Logo'
     ],
+    'iPhone' => [
+        'image_url' => 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/apple.svg',
+        'alt' => 'iPhone Logo'
+    ],
     'Samsung' => [
         'image_url' => 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/samsung.svg',
         'alt' => 'Samsung Logo'

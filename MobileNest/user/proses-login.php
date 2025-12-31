@@ -1,4 +1,10 @@
 <?php
+// START SESSION FIRST before any operations
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Then require config
 require_once '../config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -21,13 +27,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $conn->prepare($sql);
     
     if (!$stmt) {
-        $_SESSION['error'] = "Database error: " . $conn->error;
+        error_log("Database Prepare Error: " . $conn->error);
+        $_SESSION['error'] = "Database error. Silakan coba lagi.";
         header('Location: login.php');
         exit;
     }
     
     $stmt->bind_param('ss', $username_or_email, $username_or_email);
-    $stmt->execute();
+    
+    if (!$stmt->execute()) {
+        error_log("Database Execute Error: " . $stmt->error);
+        $_SESSION['error'] = "Database error. Silakan coba lagi.";
+        header('Location: login.php');
+        exit;
+    }
+    
     $result = $stmt->get_result();
 
     if ($result->num_rows === 1) {
@@ -64,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['admin_username'] = $user['username'];
                 $_SESSION['success'] = "Login berhasil. Selamat datang, Admin " . $user['nama_lengkap'] . "!";
                 
+                error_log("Admin Login Success - User ID: " . $user['id_user']);
                 header('Location: ../admin/dashboard.php');
                 exit;
             } else {
@@ -74,6 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = 'user';
                 $_SESSION['success'] = "Login berhasil. Selamat datang, " . $user['nama_lengkap'] . "!";
+                
+                error_log("User Login Success - User ID: " . $user['id_user']);
                 
                 // Redirect ke halaman sebelumnya atau home
                 $redirect_to = $_SESSION['redirect_after_login'] ?? '../index.php';

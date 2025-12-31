@@ -6,6 +6,14 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 // 2. Panggil Config (Wajib ada biar SITE_URL jalan)
 require_once dirname(__DIR__) . '/config.php';
+
+// 3. Ensure is_logged_in() function is available
+if (!function_exists('is_logged_in')) {
+    function is_logged_in() {
+        return (isset($_SESSION['admin']) && !empty($_SESSION['admin'])) || 
+               (isset($_SESSION['user']) && !empty($_SESSION['user']));
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -43,7 +51,7 @@ require_once dirname(__DIR__) . '/config.php';
                     <?php if (is_logged_in()): ?>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Akun'); ?>
+                                <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($_SESSION['user_name'] ?? ($_SESSION['admin_name'] ?? 'Akun')); ?>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                 <li><a class="dropdown-item" href="<?php echo SITE_URL; ?>/user/profil.php">Profil</a></li>

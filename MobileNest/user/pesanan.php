@@ -2,12 +2,14 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once '../config.php';
 require_once '../includes/auth-check.php';
-
-// Check login using updated function
 require_user_login();
 
-// Get ID safely using helper
-$user_id = get_current_user_id();
+// GET USER ID - Support both old and new session variables
+$user_id = $_SESSION['user_id'] ?? $_SESSION['user'] ?? null;
+if (!$user_id) {
+    header('Location: login.php');
+    exit;
+}
 
 // Query pesanan
 $sql = "SELECT p.*, GROUP_CONCAT(dp.nama_produk SEPARATOR ', ') as produk_list 
@@ -59,7 +61,7 @@ $stmt->close();
                             </div>
                             <div class="col-md-4 text-end">
                                 <p class="mb-1 fw-bold">Total Belanja:</p>
-                                <h5 class="text-danger fw-bold"><?php echo format_rupiah($row['total_harga']); ?></h5>
+                                <h5 class="text-danger fw-bold">Rp <?php echo number_format($row['total_harga'], 0, ',', '.'); ?></h5>
                             </div>
                         </div>
                         <div class="mt-3 text-end">
@@ -74,7 +76,6 @@ $stmt->close();
         </div>
     <?php else: ?>
         <div class="text-center py-5">
-            <img src="../assets/images/empty-cart.svg" width="200" class="mb-3" alt="Empty">
             <h4>Belum ada pesanan</h4>
             <p class="text-muted">Yuk mulai belanja smartphone impianmu!</p>
             <a href="../produk/list-produk.php" class="btn btn-primary rounded-pill px-4 mt-2">Mulai Belanja</a>

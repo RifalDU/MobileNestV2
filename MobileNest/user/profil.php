@@ -2,12 +2,14 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once '../config.php';
 require_once '../includes/auth-check.php';
-
-// Check login using updated function
 require_user_login();
 
-// Get ID safely using helper
-$user_id = get_current_user_id();
+// GET USER ID - Support both old and new session variables
+$user_id = $_SESSION['user_id'] ?? $_SESSION['user'] ?? null;
+if (!$user_id) {
+    header('Location: login.php');
+    exit;
+}
 
 $errors = [];
 $message = '';
@@ -36,9 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($update->execute()) {
                 $message = 'Profil berhasil diperbarui!';
                 $user_data = ['nama_lengkap'=>$nama, 'email'=>$email, 'no_telepon'=>$telepon, 'alamat'=>$alamat];
-                
-                // Update session name if changed
-                $_SESSION['nama_lengkap'] = $nama;
             }
             $update->close();
         }
@@ -141,13 +140,6 @@ body { background: #f5f7fa; }
     padding: 12px;
     border-radius: 8px;
     font-weight: 600;
-    text-align: center;
-    text-decoration: none;
-    display: block;
-}
-.btn-logout:hover {
-    background: #c0392b;
-    color: white;
 }
 .photo-upload-box {
     border: 2px dashed #ddd;
@@ -165,7 +157,7 @@ body { background: #f5f7fa; }
 <div class="row">
 
 <!-- Sidebar -->
-<div class="col-md-3 mb-4">
+<div class="col-md-3">
 <div class="sidebar-menu">
     <div class="sidebar-header">
         <div class="sidebar-avatar"><i class="bi bi-person-circle"></i></div>
@@ -191,7 +183,7 @@ body { background: #f5f7fa; }
         <i class="bi bi-bell"></i> Notifikasi
     </a>
     <div style="padding: 15px 25px;">
-        <a href="logout.php" class="btn-logout"><i class="bi bi-box-arrow-right"></i> Keluar</a>
+        <button class="btn-logout"><i class="bi bi-box-arrow-right"></i> Keluar</button>
     </div>
 </div>
 </div>
@@ -279,15 +271,13 @@ body { background: #f5f7fa; }
 <script>
 document.querySelectorAll('.sidebar-menu-item').forEach(item => {
     item.addEventListener('click', function(e) {
-        if(this.getAttribute('href') !== 'logout.php') {
-            e.preventDefault();
-            document.querySelectorAll('.sidebar-menu-item').forEach(i => i.classList.remove('active'));
-            this.classList.add('active');
-            
-            const tab = this.dataset.tab;
-            document.querySelectorAll('.tab-content-area').forEach(t => t.style.display = 'none');
-            document.getElementById(tab + '-tab').style.display = 'block';
-        }
+        e.preventDefault();
+        document.querySelectorAll('.sidebar-menu-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+        
+        const tab = this.dataset.tab;
+        document.querySelectorAll('.tab-content-area').forEach(t => t.style.display = 'none');
+        document.getElementById(tab + '-tab').style.display = 'block';
     });
 });
 </script>
